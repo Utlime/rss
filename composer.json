@@ -1,0 +1,21 @@
+{
+    "name": "utlime/php-rss-writer",
+    "description": "Optimized RSS writer",
+    "type": "library",
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "Alexander Vysotsky",
+            "email": "utlime@gmail.com"
+        }
+    ],
+    "minimum-stability": "dev",
+    "autoload": {
+        "classmap": [
+            "src/"
+        ]
+    },
+    "require": {
+        "php": ">=5.4.0"
+    }
+}
