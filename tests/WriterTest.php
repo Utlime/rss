@@ -17,7 +17,7 @@ class WriterTest extends TestCase
 
         (new Writer(function ($string) use (&$output) {$output .= $string;}))->writeItem($item);
 
-        $this->assertEquals($template, $output);
+        $this->assertXmlStringEqualsXmlString($template, $output);
 
         return $item;
     }
@@ -40,7 +40,7 @@ class WriterTest extends TestCase
 
         (new Writer(function ($string) use (&$output) {$output .= $string;}))->writeChannel($channel);
 
-        $this->assertEquals($template, $output);
+        $this->assertXmlStringEqualsXmlString($template, $output);
 
         return $channel;
     }
@@ -58,23 +58,25 @@ class WriterTest extends TestCase
 
         (new Writer(function ($string) use (&$output) {$output .= $string;}))->writeRSS($rss);
 
-        $this->assertEquals($template, $output);
+        $this->assertXmlStringEqualsXmlString($template, $output);
 
         return $rss;
     }
 
     /**
-     * @covers Writer::write
+     * @covers  Writer::write
      * @depends testRSS
      * @depends testChannel
      * @depends testItem
      * @param RSS     $rss
      * @param Channel $channel
      * @param Item    $item
+     * @return RSS
      */
     public function testFeed(RSS $rss, Channel $channel, Item $item)
     {
-        $output =
+        $output   = '';
+        $template =
             '<?xml version="1.0" encoding="UTF-8"?>'
             . '<rss version="2.0">'
                 . '<channel>'
@@ -94,5 +96,37 @@ class WriterTest extends TestCase
         );
 
         (new Writer(function ($string) use (&$output) {$output .= $string;}))->write($rss);
+
+        $this->assertXmlStringEqualsXmlString($template, $output);
+
+        return $rss;
+    }
+
+    /**
+     * @depends testFeed
+     * @param RSS $rss
+     * @return RSS
+     */
+    public function testCDATA(RSS $rss)
+    {
+        $output   = '';
+        $template =
+            '<?xml version="1.0" encoding="UTF-8"?>'
+            . '<rss version="2.0">'
+                . '<channel>'
+                    . '<title><![CDATA[title]]></title>'
+                    . '<link>link</link>'
+                    . '<description>description</description>'
+                    . '<item></item>'
+                . '</channel>'
+            . '</rss>';
+
+        (new Writer(function ($string) use (&$output) {$output .= $string;}))
+            ->setCDATA(Writer::CDATA_CHANNEL_TITLE)
+            ->write($rss);
+
+        $this->assertXmlStringEqualsXmlString($template, $output);
+
+        return $rss;
     }
 }
