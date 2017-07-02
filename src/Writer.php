@@ -31,12 +31,14 @@ class Writer
     /**
      * @param RSS $rss
      */
-    protected function writeRSS(RSS $rss)
+    public function writeRSS(RSS $rss)
     {
         call_user_func($this->output, '<rss version="2.0">');
 
-        foreach ($rss->getChannels() as $channel) {
-            $this->writeChannel($channel);
+        if ($rss->getChannels() instanceof \Iterator) {
+            foreach ($rss->getChannels() as $channel) {
+                $this->writeChannel($channel);
+            }
         }
 
         call_user_func($this->output, '</rss>');
@@ -45,7 +47,7 @@ class Writer
     /**
      * @param Channel $channel
      */
-    protected function writeChannel(Channel $channel)
+    public function writeChannel(Channel $channel)
     {
         call_user_func($this->output, '<channel>');
 
@@ -97,8 +99,10 @@ class Writer
             call_user_func($this->output, '</ttl>');
         }
 
-        foreach ($channel->getItems() as $item) {
-            $this->writeItem($item);
+        if ($channel->getItems() instanceof \Iterator) {
+            foreach ($channel->getItems() as $item) {
+                $this->writeItem($item);
+            }
         }
 
         call_user_func($this->output, '</channel>');
@@ -107,7 +111,7 @@ class Writer
     /**
      * @param Item $item
      */
-    protected function writeItem(Item $item)
+    public function writeItem(Item $item)
     {
         call_user_func($this->output, '<item>');
 
@@ -151,11 +155,11 @@ class Writer
             call_user_func(
                 $this->output,
                 strtr(
-                    '<enclosure url="{url}" type="{type}" length="{length}" />',
+                    '<enclosure url="{u}" type="{t}" length="{l}" />',
                     [
-                        '{url}'    => $item->getEnclosure()['url'],
-                        '{type}'   => $item->getEnclosure()['type'],
-                        '{length}' => $item->getEnclosure()['length'],
+                        '{u}' => $item->getEnclosure()['url'],
+                        '{t}' => $item->getEnclosure()['type'],
+                        '{l}' => $item->getEnclosure()['length'],
                     ]
                 )
             );

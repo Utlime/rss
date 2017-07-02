@@ -10,19 +10,21 @@ class RSS
     protected $channels = [];
 
     /**
-     * Feed constructor.
-     * @param \Iterator|Channel[] $channels
-     */
-    public function __construct(\Iterator $channels)
-    {
-        $this->channels = $channels;
-    }
-
-    /**
      * @return \Iterator|Channel[]
      */
     public function getChannels()
     {
         return $this->channels;
+    }
+
+    /**
+     * @param \Iterator|Channel[] $channels
+     * @return RSS
+     */
+    public function setChannels(\Iterator $channels = null)
+    {
+        $this->channels = $channels;
+
+        return $this;
     }
 }
