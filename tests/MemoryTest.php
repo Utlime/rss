@@ -2,33 +2,61 @@
 
 use PHPUnit\Framework\TestCase;
 
+/**
+ * Class MemoryTest
+ * @package Utlime\RSS
+ */
 class MemoryTest extends TestCase
 {
+    /** @var null|int */
     protected static $memory_usage = null;
+
+    /**
+     * @return void
+     */
+    public static function setUpBeforeClass()
+    {
+        $rss   = self::getRSS(1, 1, false);
+        $write = self::getWriter();
+        $write->write($rss);
+    }
+
+    /**
+     * @return void
+     */
+    public static function tearDownAfterClass()
+    {
+        self::$memory_usage = null;
+    }
 
     /**
      * @return array|array[]
      */
-    public function additionSize()
+    public function providerSize()
     {
         return [
-            'Size 100'     => [10, 10],
-            'Size 1000'    => [100, 10],
-            'Size 10000'   => [100, 100],
-            'Size 100000'  => [1000, 100],
+            'Lazy size 10x10'     => [10, 10, true],
+            'Lazy size 100x10'    => [100, 10, true],
+            'Lazy size 100x100'   => [100, 100, true],
+            'Lazy size 1000x100'  => [1000, 100, true],
+            'Eager size 10x10'    => [10, 10, false],
+            'Eager size 100x10'   => [100, 10, false],
+            'Eager size 100x100'  => [100, 100, false],
+            'Eager size 1000x100' => [1000, 100, false],
         ];
     }
 
     /**
-     * @dataProvider additionSize
-     * @param int $channelSize
-     * @param int $itemSize
+     * @dataProvider providerSize
+     * @param int  $channelSize
+     * @param int  $itemSize
+     * @param bool $isLazyLoad
      */
-    public function testLazyLoadMemoryUsage($channelSize, $itemSize)
+    public function testMemoryUsage($channelSize, $itemSize, $isLazyLoad)
     {
         $memory = memory_get_usage();
 
-        $rss   = self::getRSS($channelSize, $itemSize);
+        $rss   = self::getRSS($channelSize, $itemSize, $isLazyLoad);
         $write = self::getWriter();
         $write->write($rss);
 
@@ -38,45 +66,13 @@ class MemoryTest extends TestCase
             self::$memory_usage = $memory;
         }
 
-        $this->assertLessThanOrEqual($memory, self::$memory_usage);
-
-        self::$memory_usage = $memory;
-    }
-
-    /**
-     * @dataProvider additionSize
-     * @param int $channelSize
-     * @param int $itemSize
-     */
-    public function testEagerLoadMemoryUsage($channelSize, $itemSize)
-    {
-        $memory = memory_get_usage();
-
-        $rss   = self::getRSS($channelSize, $itemSize, true);
-        $write = self::getWriter();
-        $write->write($rss);
-
-        $memory = memory_get_usage() - $memory;
-
-        if (self::$memory_usage === null) {
-            self::$memory_usage = $memory;
+        if ($isLazyLoad) {
+            $this->assertLessThanOrEqual(self::$memory_usage, $memory);
+        } else {
+            $this->assertGreaterThanOrEqual(self::$memory_usage, $memory);
         }
 
-        $this->assertGreaterThanOrEqual(self::$memory_usage, $memory);
-
         self::$memory_usage = $memory;
-    }
-
-    public static function setUpBeforeClass()
-    {
-        $rss   = self::getRSS(1, 1, true);
-        $write = self::getWriter();
-        $write->write($rss);
-    }
-
-    public static function tearDownAfterClass()
-    {
-        self::$memory_usage = null;
     }
 
     /**
@@ -84,20 +80,21 @@ class MemoryTest extends TestCase
      */
     protected static function getWriter()
     {
-        return new Writer(function ($string) {});
+        return new Writer(function ($string) {
+        });
     }
 
     /**
      * @param int  $channelSize
      * @param int  $itemSize
-     * @param bool $eager
+     * @param bool $isLazyLoad
      * @return RSS
      */
-    protected static function getRSS($channelSize, $itemSize, $eager = false)
+    protected static function getRSS($channelSize, $itemSize, $isLazyLoad)
     {
         $rss = new RSS();
 
-        $rss->setChannels(self::getChanelIterator($channelSize, $itemSize, $eager));
+        $rss->setChannels(self::getChanelIterator($channelSize, $itemSize, $isLazyLoad));
 
         return $rss;
     }
@@ -105,30 +102,30 @@ class MemoryTest extends TestCase
     /**
      * @param int  $channelSize
      * @param int  $itemSize
-     * @param bool $eager
+     * @param bool $isLazyLoad
      * @return \Iterator
      */
-    protected static function getChanelIterator($channelSize, $itemSize, $eager = false)
+    protected static function getChanelIterator($channelSize, $itemSize, $isLazyLoad)
     {
-        $generator = function () use ($channelSize, $itemSize, $eager) {
+        $generator = function () use ($channelSize, $itemSize, $isLazyLoad) {
             for ($i = 0; $i < $channelSize; $i++) {
                 $channel = new Channel('title ' . $i, 'link ' . $i, 'description ' . $i);
 
-                $channel->setItems(self::getItemIterator($itemSize, $eager));
+                $channel->setItems(self::getItemIterator($itemSize, $isLazyLoad));
 
                 yield $channel;
             }
         };
 
-        return $eager ? new \ArrayIterator(iterator_to_array($generator())) : $generator();
+        return $isLazyLoad ? $generator() : new \ArrayIterator(iterator_to_array($generator()));
     }
 
     /**
      * @param int  $itemSize
-     * @param bool $eager
+     * @param bool $isLazyLoad
      * @return \Iterator
      */
-    protected static function getItemIterator($itemSize, $eager = false)
+    protected static function getItemIterator($itemSize, $isLazyLoad)
     {
         $generator = function () use ($itemSize) {
             for ($i = 0; $i < $itemSize; $i++) {
@@ -142,6 +139,6 @@ class MemoryTest extends TestCase
             }
         };
 
-        return $eager ? new \ArrayIterator(iterator_to_array($generator())) : $generator();
+        return $isLazyLoad ? $generator() : new \ArrayIterator(iterator_to_array($generator()));
     }
 }
