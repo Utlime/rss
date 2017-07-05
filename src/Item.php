@@ -4,8 +4,13 @@
  * Class Item
  * @package Utlime\RSS
  */
-class Item
+class Item implements CDATAInterface
 {
+    use CDATATrait;
+
+    const CDATA_ITEM_TITLE          = 'item:title';
+    const CDATA_ITEM_DESCRIPTION    = 'item:description';
+
     /** @var null|string */
     protected $title;
 

@@ -4,8 +4,13 @@
  * Class Channel
  * @package Utlime\RSS
  */
-class Channel
+class Channel implements CDATAInterface
 {
+    use CDATATrait;
+
+    const CDATA_CHANNEL_TITLE       = 'channel:title';
+    const CDATA_CHANNEL_DESCRIPTION = 'channel:description';
+
     /** @var  string */
     protected $title;
 

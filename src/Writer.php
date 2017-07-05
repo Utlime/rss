@@ -4,18 +4,17 @@
  * Class Writer
  * @package Utlime\RSS
  */
-class Writer
+class Writer implements CDATAInterface
 {
-    const CDATA_CHANNEL_TITLE       = 'channel:title';
-    const CDATA_CHANNEL_DESCRIPTION = 'channel:description';
-    const CDATA_ITEM_TITLE          = 'item:title';
-    const CDATA_ITEM_DESCRIPTION    = 'item:description';
+    use CDATATrait;
+
+    const CDATA_CHANNEL_TITLE       = Channel::CDATA_CHANNEL_TITLE;
+    const CDATA_CHANNEL_DESCRIPTION = Channel::CDATA_CHANNEL_DESCRIPTION;
+    const CDATA_ITEM_TITLE          = Item::CDATA_ITEM_TITLE;
+    const CDATA_ITEM_DESCRIPTION    = Item::CDATA_ITEM_DESCRIPTION;
 
     /** @var callable */
     protected $output;
-
-    /** @var array|bool[] */
-    protected $CDATA = [];
 
     /**
      * Writer constructor.
@@ -24,27 +23,6 @@ class Writer
     public function __construct(callable $output = null)
     {
         $this->output = $output ?: [$this, 'defaultOutput'];
-    }
-
-    /**
-     * @param string $section
-     * @param bool   $val
-     * @return Writer
-     */
-    public function setCDATA($section, $val = true)
-    {
-        $this->CDATA[$section] = $val;
-
-        return $this;
-    }
-
-    /**
-     * @param string $section
-     * @return bool|null
-     */
-    public function getCDATA($section)
-    {
-        return isset($this->CDATA[$section]) ? $this->CDATA[$section] : null;
     }
 
     /**
@@ -81,17 +59,7 @@ class Writer
         call_user_func($this->output, '<channel>');
 
         call_user_func($this->output, '<title>');
-
-        if ($this->getCDATA(self::CDATA_CHANNEL_TITLE)) {
-            call_user_func($this->output, '<![CDATA[');
-        }
-
-        call_user_func($this->output, $channel->getTitle());
-
-        if ($this->getCDATA(self::CDATA_CHANNEL_TITLE)) {
-            call_user_func($this->output, ']]>');
-        }
-
+        call_user_func($this->output, $this->wrapCDATA($channel, self::CDATA_CHANNEL_TITLE, $channel->getTitle()));
         call_user_func($this->output, '</title>');
 
         call_user_func($this->output, '<link>');
@@ -99,17 +67,7 @@ class Writer
         call_user_func($this->output, '</link>');
 
         call_user_func($this->output, '<description>');
-
-        if ($this->getCDATA(self::CDATA_CHANNEL_DESCRIPTION)) {
-            call_user_func($this->output, '<![CDATA[');
-        }
-
-        call_user_func($this->output, $channel->getDescription());
-
-        if ($this->getCDATA(self::CDATA_CHANNEL_DESCRIPTION)) {
-            call_user_func($this->output, ']]>');
-        }
-
+        call_user_func($this->output, $this->wrapCDATA($channel, self::CDATA_CHANNEL_DESCRIPTION, $channel->getDescription()));
         call_user_func($this->output, '</description>');
 
         if (!is_null($channel->getLanguage())) {
@@ -166,17 +124,7 @@ class Writer
 
         if (!is_null($item->getTitle())) {
             call_user_func($this->output, '<title>');
-
-            if ($this->getCDATA(self::CDATA_ITEM_TITLE)) {
-                call_user_func($this->output, '<![CDATA[');
-            }
-
-            call_user_func($this->output, $item->getTitle());
-
-            if ($this->getCDATA(self::CDATA_ITEM_TITLE)) {
-                call_user_func($this->output, ']]>');
-            }
-
+            call_user_func($this->output, $this->wrapCDATA($item, self::CDATA_ITEM_TITLE, $item->getTitle()));
             call_user_func($this->output, '</title>');
         }
 
@@ -188,17 +136,7 @@ class Writer
 
         if (!is_null($item->getDescription())) {
             call_user_func($this->output, '<description>');
-
-            if ($this->getCDATA(self::CDATA_ITEM_DESCRIPTION)) {
-                call_user_func($this->output, '<![CDATA[');
-            }
-
-            call_user_func($this->output, $item->getDescription());
-
-            if ($this->getCDATA(self::CDATA_ITEM_DESCRIPTION)) {
-                call_user_func($this->output, ']]>');
-            }
-
+            call_user_func($this->output, $this->wrapCDATA($item, self::CDATA_ITEM_DESCRIPTION, $item->getDescription()));
             call_user_func($this->output, '</description>');
         }
 
@@ -235,6 +173,21 @@ class Writer
         }
 
         call_user_func($this->output, '</item>');
+    }
+
+    /**
+     * @param CDATAInterface $source
+     * @param string         $section
+     * @param string         $content
+     * @return string
+     */
+    protected function wrapCDATA(CDATAInterface $source, $section, $content)
+    {
+        if (($source->getCDATA($section) || $this->getCDATA($section))) {
+            return '<![CDATA[' . $content . ']]>';
+        } else {
+            return $content;
+        }
     }
 
     /**
